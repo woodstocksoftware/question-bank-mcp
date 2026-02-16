@@ -145,6 +145,37 @@ def get_bank_statistics(bank_id: str) -> str:
     return result
 
 
+@mcp.tool()
+def delete_question_bank(bank_id: str) -> str:
+    """
+    Delete a question bank and all its questions and topics.
+
+    This is a destructive operation — all questions, topics, and tags in the bank
+    will be permanently deleted.
+
+    Args:
+        bank_id: The question bank ID to delete
+
+    Returns:
+        Confirmation message
+    """
+    bank = db.get_question_bank(bank_id)
+    if not bank:
+        return f"Question bank not found: {bank_id}"
+
+    stats = db.get_bank_statistics(bank_id)
+    success = db.delete_question_bank(bank_id)
+
+    if success:
+        return (
+            f"✅ Question bank deleted: **{bank['name']}**\n\n"
+            f"Removed {stats['total_questions']} question(s) and "
+            f"all associated topics and tags."
+        )
+    else:
+        return "Failed to delete question bank."
+
+
 # ============================================================
 # TOPIC TOOLS
 # ============================================================
@@ -226,6 +257,41 @@ def list_topics(bank_id: str) -> str:
     return result
 
 
+@mcp.tool()
+def delete_topic(bank_id: str, topic_id: str) -> str:
+    """
+    Delete a topic from a question bank.
+
+    Questions linked to this topic will be unlinked but not deleted.
+
+    Args:
+        bank_id: The question bank ID
+        topic_id: The topic ID to delete
+
+    Returns:
+        Confirmation message
+    """
+    bank = db.get_question_bank(bank_id)
+    if not bank:
+        return f"Question bank not found: {bank_id}"
+
+    topics = db.list_topics(bank_id)
+    topic = next((t for t in topics if t['id'] == topic_id), None)
+    if not topic:
+        return f"Topic not found in this bank: {topic_id}"
+
+    success = db.delete_topic(topic_id)
+
+    if success:
+        return (
+            f"✅ Topic deleted: **{topic['name']}**\n\n"
+            f"{topic['question_count']} question(s) were unlinked from this topic "
+            f"but remain in the bank."
+        )
+    else:
+        return "Failed to delete topic."
+
+
 # ============================================================
 # QUESTION TOOLS
 # ============================================================
@@ -279,7 +345,16 @@ def create_question(
     
     if question_type == 'multiple_choice' and not options:
         return "Multiple choice questions require options."
-    
+
+    if not (0.0 <= difficulty <= 1.0):
+        return "Difficulty must be between 0.0 and 1.0."
+
+    if points < 0:
+        return "Points must be non-negative."
+
+    if estimated_time_seconds < 1:
+        return "Estimated time must be at least 1 second."
+
     question_id = f"q-{uuid.uuid4().hex[:8]}"
     
     question = db.create_question(
@@ -360,7 +435,24 @@ def update_question(
     existing = db.get_question(question_id)
     if not existing:
         return f"Question not found: {question_id}"
-    
+
+    valid_bloom = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create']
+    if bloom_level is not None and bloom_level not in valid_bloom:
+        return f"Invalid Bloom's level. Must be one of: {', '.join(valid_bloom)}"
+
+    valid_status = ['draft', 'active', 'archived']
+    if status is not None and status not in valid_status:
+        return f"Invalid status. Must be one of: {', '.join(valid_status)}"
+
+    if difficulty is not None and not (0.0 <= difficulty <= 1.0):
+        return "Difficulty must be between 0.0 and 1.0."
+
+    if points is not None and points < 0:
+        return "Points must be non-negative."
+
+    if estimated_time_seconds is not None and estimated_time_seconds < 1:
+        return "Estimated time must be at least 1 second."
+
     updates = {}
     if stem is not None: updates['stem'] = stem
     if correct_answer is not None: updates['correct_answer'] = correct_answer
@@ -436,6 +528,8 @@ def search_questions(
     Returns:
         List of matching questions
     """
+    limit = max(1, min(limit, 100))
+
     questions = db.search_questions(
         bank_id=bank_id,
         topic_id=topic_id,

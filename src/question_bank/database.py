@@ -240,6 +240,20 @@ def get_bank_statistics(bank_id: str) -> dict:
     }
 
 
+def delete_question_bank(bank_id: str) -> bool:
+    """Delete a question bank and all its questions and topics (via CASCADE)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM question_banks WHERE id = ?", (bank_id,))
+    affected = cursor.rowcount
+
+    conn.commit()
+    conn.close()
+
+    return affected > 0
+
+
 # ============================================================
 # TOPIC OPERATIONS
 # ============================================================
@@ -260,6 +274,20 @@ def create_topic(topic_id: str, bank_id: str, name: str,
     
     return {"id": topic_id, "bank_id": bank_id, "name": name, 
             "parent_id": parent_id, "description": description}
+
+
+def delete_topic(topic_id: str) -> bool:
+    """Delete a topic. Questions linked to this topic are unlinked (via CASCADE on question_topics)."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM topics WHERE id = ?", (topic_id,))
+    affected = cursor.rowcount
+
+    conn.commit()
+    conn.close()
+
+    return affected > 0
 
 
 def list_topics(bank_id: str) -> list:
@@ -373,18 +401,28 @@ def get_question(question_id: str) -> Optional[dict]:
 
 def update_question(question_id: str, **updates) -> Optional[dict]:
     """Update a question."""
+    ALLOWED_COLUMNS = {
+        'stem', 'correct_answer', 'options', 'explanation', 'difficulty',
+        'bloom_level', 'estimated_time_seconds', 'points', 'status',
+        'author', 'question_type', 'updated_at',
+    }
+
     conn = get_connection()
     cursor = conn.cursor()
-    
+
     # Handle special fields
     topics = updates.pop('topics', None)
     tags = updates.pop('tags', None)
-    
+
     if 'options' in updates and updates['options'] is not None:
         updates['options'] = json.dumps(updates['options'])
-    
+
     # Build update query
     if updates:
+        invalid = set(updates.keys()) - ALLOWED_COLUMNS
+        if invalid:
+            conn.close()
+            raise ValueError(f"Invalid column names: {invalid}")
         updates['updated_at'] = datetime.now().isoformat()
         set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
         cursor.execute(
