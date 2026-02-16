@@ -6,7 +6,8 @@
 - **Framework:** FastMCP (`mcp>=1.0.0`)
 - **Database:** SQLite (auto-created at `data/question_bank.db`)
 - **Transport:** stdio
-- **Dependencies:** `mcp>=1.0.0`, `python-dateutil>=2.8.0`
+- **Testing:** pytest + pytest-cov (88 tests, 93% coverage)
+- **Dependencies:** `mcp>=1.0.0`, `python-dateutil>=2.8.0`, `pytest>=9.0.0`, `pytest-cov>=7.0.0`
 
 ## How to Run
 
@@ -50,6 +51,10 @@ src/question_bank/
 ├── __main__.py                # python -m entry point
 ├── server.py                  # 12 MCP tools + 2 MCP resources (~800 lines)
 └── database.py                # SQLite ORM layer (~500 lines)
+tests/
+├── conftest.py                # DB isolation fixture (tmp_path per test)
+├── test_database.py           # 40 tests — CRUD, search, cascades, security
+└── test_server.py             # 48 tests — validation, tools, formatting
 data/
 └── question_bank.db           # SQLite database (auto-created, gitignored)
 ```
@@ -110,6 +115,19 @@ data/
 | `questions` | All question data, metadata, and IRT fields |
 | `question_topics` | Many-to-many: questions ↔ topics |
 | `question_tags` | Many-to-many: questions ↔ tags |
+
+## How to Test
+
+```bash
+# Run all tests
+./venv/bin/python -m pytest tests/ -v
+
+# Run with coverage
+./venv/bin/python -m pytest tests/ -v --cov=src/question_bank --cov-report=term-missing
+```
+
+- Each test gets an isolated SQLite database via the `conftest.py` fixture (no production DB touched)
+- `@mcp.tool()` decorated functions are called directly — no MCP transport needed
 
 ## Key Conventions
 
