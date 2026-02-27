@@ -8,9 +8,10 @@ Helps teachers create, manage, and organize test questions with:
 - Question bank organization
 """
 
-import json
 import uuid
+
 from mcp.server.fastmcp import FastMCP
+
 from . import database as db
 
 # Initialize MCP server
@@ -30,18 +31,18 @@ def create_question_bank(
 ) -> str:
     """
     Create a new question bank for organizing questions.
-    
+
     Args:
         name: Name of the question bank (e.g., "Algebra I Midterm")
         subject: Subject area (e.g., "Mathematics", "Science", "English")
         description: Optional description of the question bank
         grade_level: Target grade level (e.g., "9th Grade", "College")
-    
+
     Returns:
         Confirmation with bank details
     """
     bank_id = f"bank-{uuid.uuid4().hex[:8]}"
-    
+
     bank = db.create_question_bank(
         bank_id=bank_id,
         name=name,
@@ -49,7 +50,7 @@ def create_question_bank(
         description=description,
         grade_level=grade_level
     )
-    
+
     return f"""
 ✅ Question Bank Created!
 
@@ -69,24 +70,24 @@ Next steps:
 def list_question_banks() -> str:
     """
     List all question banks.
-    
+
     Returns:
         List of question banks with question counts
     """
     banks = db.list_question_banks()
-    
+
     if not banks:
         return "No question banks found. Create one with `create_question_bank`."
-    
+
     result = "**Question Banks:**\n\n"
-    
+
     for bank in banks:
         result += f"### {bank['name']}\n"
         result += f"- **ID:** `{bank['id']}`\n"
         result += f"- **Subject:** {bank['subject']}\n"
         result += f"- **Grade Level:** {bank['grade_level'] or 'Not specified'}\n"
         result += f"- **Questions:** {bank['question_count']} | **Topics:** {bank['topic_count']}\n\n"
-    
+
     return result
 
 
@@ -94,23 +95,23 @@ def list_question_banks() -> str:
 def get_bank_statistics(bank_id: str) -> str:
     """
     Get detailed statistics for a question bank.
-    
+
     Args:
         bank_id: The question bank ID
-    
+
     Returns:
         Statistics including question counts, difficulty distribution, Bloom's levels
     """
     bank = db.get_question_bank(bank_id)
     if not bank:
         return f"Question bank not found: {bank_id}"
-    
+
     stats = db.get_bank_statistics(bank_id)
-    
+
     # Format average difficulty
     avg_diff = stats['avg_difficulty']
     avg_diff_str = f"{avg_diff:.2f}" if avg_diff is not None else "N/A"
-    
+
     result = f"""
 ## 📊 Statistics for "{bank['name']}"
 
@@ -124,24 +125,24 @@ def get_bank_statistics(bank_id: str) -> str:
 """
     for qtype, count in stats['by_type'].items():
         result += f"- {qtype.replace('_', ' ').title()}: {count}\n"
-    
+
     result += "\n### By Difficulty\n"
     result += f"- Easy (< 0.3): {stats['by_difficulty']['easy']}\n"
     result += f"- Medium (0.3-0.7): {stats['by_difficulty']['medium']}\n"
     result += f"- Hard (> 0.7): {stats['by_difficulty']['hard']}\n"
-    
+
     if stats['by_bloom_level']:
         result += "\n### By Bloom's Taxonomy\n"
         bloom_order = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create']
         for level in bloom_order:
             if level in stats['by_bloom_level']:
                 result += f"- {level.title()}: {stats['by_bloom_level'][level]}\n"
-    
+
     if stats['by_topic']:
         result += "\n### By Topic\n"
         for topic, count in stats['by_topic'].items():
             result += f"- {topic}: {count}\n"
-    
+
     return result
 
 
@@ -189,22 +190,22 @@ def create_topic(
 ) -> str:
     """
     Create a topic within a question bank for organizing questions.
-    
+
     Args:
         bank_id: The question bank ID
         name: Topic name (e.g., "Linear Equations", "Photosynthesis")
         description: Optional description of what this topic covers
         parent_topic_id: Optional parent topic ID for hierarchical organization
-    
+
     Returns:
         Confirmation with topic details
     """
     bank = db.get_question_bank(bank_id)
     if not bank:
         return f"Question bank not found: {bank_id}"
-    
+
     topic_id = f"topic-{uuid.uuid4().hex[:8]}"
-    
+
     topic = db.create_topic(
         topic_id=topic_id,
         bank_id=bank_id,
@@ -212,7 +213,7 @@ def create_topic(
         parent_id=parent_topic_id,
         description=description
     )
-    
+
     return f"""
 ✅ Topic Created!
 
@@ -229,31 +230,31 @@ Use this topic ID when creating questions.
 def list_topics(bank_id: str) -> str:
     """
     List all topics in a question bank.
-    
+
     Args:
         bank_id: The question bank ID
-    
+
     Returns:
         List of topics with question counts
     """
     bank = db.get_question_bank(bank_id)
     if not bank:
         return f"Question bank not found: {bank_id}"
-    
+
     topics = db.list_topics(bank_id)
-    
+
     if not topics:
         return f"No topics in '{bank['name']}'. Create one with `create_topic`."
-    
+
     result = f"**Topics in '{bank['name']}':**\n\n"
-    
+
     for topic in topics:
         indent = "  " if topic['parent_id'] else ""
         result += f"{indent}- **{topic['name']}** (`{topic['id']}`)\n"
         result += f"{indent}  Questions: {topic['question_count']}\n"
         if topic['description']:
             result += f"{indent}  {topic['description']}\n"
-    
+
     return result
 
 
@@ -313,7 +314,7 @@ def create_question(
 ) -> str:
     """
     Create a new question in a question bank.
-    
+
     Args:
         bank_id: The question bank ID
         question_type: Type of question - "multiple_choice", "true_false", "short_answer", "essay"
@@ -327,22 +328,22 @@ def create_question(
         points: Point value, default 1
         topic_ids: List of topic IDs this question belongs to
         tags: List of tags for flexible categorization
-    
+
     Returns:
         The created question with all details
     """
     bank = db.get_question_bank(bank_id)
     if not bank:
         return f"Question bank not found: {bank_id}"
-    
+
     valid_types = ['multiple_choice', 'true_false', 'short_answer', 'essay']
     if question_type not in valid_types:
         return f"Invalid question type. Must be one of: {', '.join(valid_types)}"
-    
+
     valid_bloom = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create']
     if bloom_level and bloom_level not in valid_bloom:
         return f"Invalid Bloom's level. Must be one of: {', '.join(valid_bloom)}"
-    
+
     if question_type == 'multiple_choice' and not options:
         return "Multiple choice questions require options."
 
@@ -356,7 +357,7 @@ def create_question(
         return "Estimated time must be at least 1 second."
 
     question_id = f"q-{uuid.uuid4().hex[:8]}"
-    
+
     question = db.create_question(
         question_id=question_id,
         bank_id=bank_id,
@@ -373,7 +374,7 @@ def create_question(
         tags=tags,
         status="draft"
     )
-    
+
     return _format_question(question, show_answer=True)
 
 
@@ -381,19 +382,19 @@ def create_question(
 def get_question(question_id: str, show_answer: bool = True) -> str:
     """
     Get a question by ID.
-    
+
     Args:
         question_id: The question ID
         show_answer: Whether to show the correct answer (default True)
-    
+
     Returns:
         Question details
     """
     question = db.get_question(question_id)
-    
+
     if not question:
         return f"Question not found: {question_id}"
-    
+
     return _format_question(question, show_answer=show_answer)
 
 
@@ -414,7 +415,7 @@ def update_question(
 ) -> str:
     """
     Update an existing question.
-    
+
     Args:
         question_id: The question ID to update
         stem: New question text
@@ -428,7 +429,7 @@ def update_question(
         topic_ids: New list of topic IDs (replaces existing)
         tags: New list of tags (replaces existing)
         status: New status - "draft", "active", "archived"
-    
+
     Returns:
         Updated question details
     """
@@ -454,23 +455,34 @@ def update_question(
         return "Estimated time must be at least 1 second."
 
     updates = {}
-    if stem is not None: updates['stem'] = stem
-    if correct_answer is not None: updates['correct_answer'] = correct_answer
-    if options is not None: updates['options'] = options
-    if explanation is not None: updates['explanation'] = explanation
-    if difficulty is not None: updates['difficulty'] = difficulty
-    if bloom_level is not None: updates['bloom_level'] = bloom_level
-    if estimated_time_seconds is not None: updates['estimated_time_seconds'] = estimated_time_seconds
-    if points is not None: updates['points'] = points
-    if topic_ids is not None: updates['topics'] = topic_ids
-    if tags is not None: updates['tags'] = tags
-    if status is not None: updates['status'] = status
-    
+    if stem is not None:
+        updates['stem'] = stem
+    if correct_answer is not None:
+        updates['correct_answer'] = correct_answer
+    if options is not None:
+        updates['options'] = options
+    if explanation is not None:
+        updates['explanation'] = explanation
+    if difficulty is not None:
+        updates['difficulty'] = difficulty
+    if bloom_level is not None:
+        updates['bloom_level'] = bloom_level
+    if estimated_time_seconds is not None:
+        updates['estimated_time_seconds'] = estimated_time_seconds
+    if points is not None:
+        updates['points'] = points
+    if topic_ids is not None:
+        updates['topics'] = topic_ids
+    if tags is not None:
+        updates['tags'] = tags
+    if status is not None:
+        updates['status'] = status
+
     if not updates:
         return "No updates provided."
-    
+
     question = db.update_question(question_id, **updates)
-    
+
     return f"✅ Question updated!\n\n{_format_question(question, show_answer=True)}"
 
 
@@ -478,19 +490,19 @@ def update_question(
 def delete_question(question_id: str) -> str:
     """
     Delete a question.
-    
+
     Args:
         question_id: The question ID to delete
-    
+
     Returns:
         Confirmation message
     """
     question = db.get_question(question_id)
     if not question:
         return f"Question not found: {question_id}"
-    
+
     success = db.delete_question(question_id)
-    
+
     if success:
         return f"✅ Question deleted: {question_id}\n\nDeleted: {question['stem'][:50]}..."
     else:
@@ -512,7 +524,7 @@ def search_questions(
 ) -> str:
     """
     Search questions with filters.
-    
+
     Args:
         bank_id: Filter by question bank
         topic_id: Filter by topic
@@ -524,7 +536,7 @@ def search_questions(
         tags: Filter by tags (questions must have at least one)
         search_text: Search in question stem and explanation
         limit: Maximum results to return (default 20)
-    
+
     Returns:
         List of matching questions
     """
@@ -542,12 +554,12 @@ def search_questions(
         search_text=search_text,
         limit=limit
     )
-    
+
     if not questions:
         return "No questions found matching your criteria."
-    
+
     result = f"**Found {len(questions)} question(s):**\n\n"
-    
+
     for q in questions:
         difficulty_label = "Easy" if q['difficulty'] < 0.3 else "Medium" if q['difficulty'] < 0.7 else "Hard"
         result += f"### `{q['id']}` - {q['question_type'].replace('_', ' ').title()}\n"
@@ -555,7 +567,7 @@ def search_questions(
         result += f"- Difficulty: {difficulty_label} ({q['difficulty']:.1f}) | "
         result += f"Bloom: {q['bloom_level'] or 'N/A'} | "
         result += f"Status: {q['status']} | Points: {q['points']}\n\n"
-    
+
     return result
 
 
@@ -563,16 +575,16 @@ def search_questions(
 def activate_questions(question_ids: list) -> str:
     """
     Activate multiple questions (change status from draft to active).
-    
+
     Args:
         question_ids: List of question IDs to activate
-    
+
     Returns:
         Confirmation of activated questions
     """
     activated = []
     errors = []
-    
+
     for qid in question_ids:
         question = db.get_question(qid)
         if not question:
@@ -582,19 +594,19 @@ def activate_questions(question_ids: list) -> str:
         else:
             db.update_question(qid, status='active')
             activated.append(qid)
-    
+
     result = f"✅ Activated {len(activated)} question(s)\n"
-    
+
     if activated:
         result += "\nActivated:\n"
         for qid in activated:
             result += f"- `{qid}`\n"
-    
+
     if errors:
         result += "\nSkipped:\n"
         for err in errors:
             result += f"- {err}\n"
-    
+
     return result
 
 
@@ -608,23 +620,23 @@ def suggest_questions(
 ) -> str:
     """
     Get suggestions for questions to create based on topic and requirements.
-    
+
     This tool helps teachers brainstorm question ideas.
-    
+
     Args:
         bank_id: The question bank ID
         topic: Topic or learning objective to create questions for
         count: Number of question suggestions (default 5)
         difficulty: "easy", "medium", "hard", or "mixed" (default)
         bloom_levels: List of Bloom's levels to include, or None for all
-    
+
     Returns:
         Suggestions for questions to create (not actual questions - teacher should review and create)
     """
     bank = db.get_question_bank(bank_id)
     if not bank:
         return f"Question bank not found: {bank_id}"
-    
+
     bloom_descriptions = {
         'remember': 'recall facts, terms, concepts',
         'understand': 'explain ideas, interpret meaning',
@@ -633,10 +645,10 @@ def suggest_questions(
         'evaluate': 'justify, critique, make judgments',
         'create': 'design, construct, produce new work'
     }
-    
+
     if bloom_levels is None:
         bloom_levels = ['remember', 'understand', 'apply', 'analyze', 'evaluate', 'create']
-    
+
     result = f"""
 ## 💡 Question Suggestions for "{topic}"
 
@@ -647,14 +659,14 @@ def suggest_questions(
 Here are {count} question ideas across different Bloom's levels:
 
 """
-    
+
     suggestion_num = 1
     for bloom in bloom_levels:
         if suggestion_num > count:
             break
-            
+
         diff_value = 0.3 if difficulty == 'easy' else 0.7 if difficulty == 'hard' else 0.5
-        
+
         result += f"""
 ### Suggestion {suggestion_num}: {bloom.title()} Level
 - **Bloom's Level:** {bloom} ({bloom_descriptions[bloom]})
@@ -670,7 +682,7 @@ To create this question, use `create_question` with:
 ---
 """
         suggestion_num += 1
-    
+
     result += """
 **Next steps:**
 1. Review these suggestions
@@ -678,7 +690,7 @@ To create this question, use `create_question` with:
 3. Use `create_question` to add them to the bank
 4. Use `activate_questions` when ready to use them
 """
-    
+
     return result
 
 
@@ -689,7 +701,7 @@ To create this question, use `create_question` with:
 def _format_question(question: dict, show_answer: bool = True) -> str:
     """Format a question for display."""
     difficulty_label = "Easy" if question['difficulty'] < 0.3 else "Medium" if question['difficulty'] < 0.7 else "Hard"
-    
+
     result = f"""
 ## Question: `{question['id']}`
 
@@ -702,26 +714,26 @@ def _format_question(question: dict, show_answer: bool = True) -> str:
 ### Stem
 {question['stem']}
 """
-    
+
     if question['options']:
         result += "\n### Options\n"
         for i, opt in enumerate(question['options']):
             letter = chr(65 + i)  # A, B, C, D...
             result += f"- **{letter}.** {opt}\n"
-    
+
     if show_answer:
         result += f"\n### Correct Answer\n{question['correct_answer']}\n"
-        
+
         if question['explanation']:
             result += f"\n### Explanation\n{question['explanation']}\n"
-    
+
     if question['topics']:
         topics_str = ", ".join(t['name'] for t in question['topics'])
         result += f"\n**Topics:** {topics_str}\n"
-    
+
     if question['tags']:
         result += f"**Tags:** {', '.join(question['tags'])}\n"
-    
+
     return result
 
 
