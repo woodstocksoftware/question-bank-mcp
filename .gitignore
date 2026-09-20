@@ -11,3 +11,13 @@ data/
 *.egg-info/
 dist/
 build/
+
+# Build/test artifacts
+report/
+coverage/
+.coverage.*
+htmlcov/
+.firecrawl/
+*.tsbuildinfo
+.claude/settings.local.json
+.claude/worktrees/
