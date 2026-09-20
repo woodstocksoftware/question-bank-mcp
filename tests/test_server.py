@@ -5,7 +5,6 @@ import pytest
 from src.question_bank import database as db
 from src.question_bank import server
 
-
 # ── helpers ──────────────────────────────────────────────────
 
 def _seed_bank(bank_id="bank-0001"):

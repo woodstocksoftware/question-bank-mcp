@@ -1,7 +1,7 @@
 """Shared fixtures for question bank tests."""
 
+
 import pytest
-from pathlib import Path
 
 from src.question_bank import database as db
 

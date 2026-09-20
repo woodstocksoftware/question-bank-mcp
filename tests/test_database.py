@@ -1,10 +1,8 @@
 """Tests for the database layer (src/question_bank/database.py)."""
 
-import json
 import pytest
 
 from src.question_bank import database as db
-
 
 # ── helpers ──────────────────────────────────────────────────
 
