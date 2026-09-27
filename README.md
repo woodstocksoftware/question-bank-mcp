@@ -2,6 +2,7 @@
 
 An MCP server for managing K-12 assessment question banks with IRT metadata. Build, organize, and search test questions with full Bloom's taxonomy classification, difficulty calibration, and topic tagging — all through natural language with Claude.
 
+[![Tests](https://github.com/woodstocksoftware/question-bank-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/woodstocksoftware/question-bank-mcp/actions/workflows/tests.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![MCP](https://img.shields.io/badge/MCP-1.0+-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
@@ -318,7 +319,13 @@ The question schema is designed with [QTI 3.0](https://www.imsglobal.org/questio
 
 ## Testing
 
-No automated test suite yet. To verify the database layer works correctly:
+88 automated tests (pytest) cover the database layer, server tools, and MCP integration.
+
+```bash
+pytest
+```
+
+To verify the database layer works correctly directly:
 
 ```bash
 python -m src.question_bank.database
@@ -336,10 +343,8 @@ The server runs on stdio transport, so it will appear to hang (it's waiting for 
 
 Contributions are welcome! This project is in early development. Areas that could use help:
 
-- Automated tests (pytest)
 - QTI 3.0 import/export
 - Additional question types
-- CI/CD pipeline
 
 ## License
 
