@@ -7,6 +7,8 @@ An MCP server for managing K-12 assessment question banks with IRT metadata. Bui
 ![MCP](https://img.shields.io/badge/MCP-1.0+-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
+Part of [AdaptiveTest developer API](https://adaptivetest.io/developers), built by Desert's Edge Solutions.
+
 ## What is MCP?
 
 [Model Context Protocol](https://modelcontextprotocol.io) (MCP) is an open standard that lets AI assistants like Claude connect to external tools and data sources. This server gives Claude the ability to create, manage, and query question banks directly — no copy-pasting or manual data entry.
